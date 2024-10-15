@@ -29,9 +29,9 @@ public:
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef T value_type;
 
-    explicit vector(const Allocator& = Allocator());
+    explicit vector(const Allocator& a = Allocator());
     explicit vector(size_type n);
-    vector(size_type n, const T& value, const Allocator& = Allocator());
+    vector(size_type n, const T& value, const Allocator& a = Allocator());
     template <class InputIterator>
     vector(InputIterator first, InputIterator last,
            const Allocator& = Allocator());
