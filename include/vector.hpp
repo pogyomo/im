@@ -78,9 +78,9 @@ public:
     reference back();
     const_reference back() const;
 
-    void push_back(const T& x);
-    void push_back(T&& x);
-    void pop_back();
+    vector push_back(const T& x);
+    vector push_back(T&& x);
+    vector pop_back();
 
     allocator_type get_allocator() const noexcept;
 };
