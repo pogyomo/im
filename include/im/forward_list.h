@@ -1,7 +1,6 @@
 #ifndef IM_FORWARD_LIST_H_
 #define IM_FORWARD_LIST_H_
 
-#include <forward_list>
 #include <initializer_list>
 #include <limits>
 #include <memory>
@@ -31,17 +30,68 @@ private:
 };
 
 template <class T>
-class iterator {};
+class iterator {
+public:
+    using value_type = T;
+
+    iterator() = delete;
+
+    iterator(const std::shared_ptr<node<T>>& node) : node_(node) {}
+
+    iterator(const iterator& it) : node_(it.node_) {}
+
+    iterator(iterator&& it) : node_(std::move(it.node_)) {}
+
+    iterator& operator=(const iterator& it) {
+        node_ = it.node_;
+        return *this;
+    }
+
+    iterator& operator=(iterator&& it) {
+        node_ = std::move(it.node_);
+        return *this;
+    }
+
+    iterator& operator++() {
+        node_ = node_->next();
+        return *this;
+    }
+
+    iterator operator++(int) {
+        auto temp = *this;
+        ++*this;
+        return temp;
+    }
+
+    const T& operator*() const { return node_->value(); }
+
+    bool operator==(const iterator& other) const {
+        return node_ == other.node_;
+    }
+
+    bool operator!=(const iterator& other) const { return !(*this == other); }
+
+private:
+    std::shared_ptr<node<T>> node_;
+};
 
 }  // namespace forward_list
 }  // namespace impl
 
 template <class T, class Allocator = std::allocator<T>>
 class forward_list {
+private:
+    using node = impl::forward_list::node<T>;
+    using alloc_traits = std::allocator_traits<Allocator>;
+
 public:
     using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
     using reference = const T&;
     using iterator = impl::forward_list::iterator<T>;
+    using pointer = typename alloc_traits::const_pointer;
+    using allocator_type = Allocator;
 
     explicit forward_list(const Allocator& a = Allocator())
         : node_(nullptr), a_(a) {}
@@ -87,8 +137,9 @@ public:
         return *this;
     }
 
-    iterator begin() const;
-    iterator end() const;
+    iterator begin() const { return iterator(node_); }
+
+    iterator end() const { return iterator(nullptr); }
 
     bool empty() const noexcept { return node_.get() == nullptr; }
 
@@ -99,14 +150,30 @@ public:
     reference front() const { return node_->value(); }
 
     template <class... Args>
-    forward_list emplace_front(Args&&... args) {
+    forward_list emplace_front(Args&&... args) const {
         auto new_node = std::allocate_shared<node>(
             a_, T(std::forward<Args>(args)...), node_);
         return forward_list(std::move(new_node), a_);
     }
 
+    forward_list push_front(const T& x) const {
+        auto new_node = std::allocate_shared<node>(a_, x, node_);
+        return forward_list(std::move(new_node), a_);
+    }
+
+    forward_list push_front(T&& x) const {
+        auto new_node =
+            std::allocate_shared<node>(a_, std::forward<T>(x), node_);
+        return forward_list(std::move(new_node), a_);
+    }
+
+    forward_list pop_front() const { return forward_list(node_->next(), a_); }
+
+    allocator_type get_allocator() const { return a_; }
+
 private:
-    using node = impl::forward_list::node<T>;
+    forward_list(const std::shared_ptr<node>& node, const Allocator& a)
+        : node_(node), a_(a) {}
 
     forward_list(std::shared_ptr<node>&& node, const Allocator& a)
         : node_(std::move(node)), a_(a) {}
